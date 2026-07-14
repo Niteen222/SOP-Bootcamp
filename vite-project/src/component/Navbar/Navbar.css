@@ -1,0 +1,5 @@
+.nav-link.active {
+    color: rgba(95, 111, 255, 1);
+    border-bottom:3px solid rgba(95, 111, 255, 1);
+    font-weight: bold;
+  }
