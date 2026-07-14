@@ -52,11 +52,15 @@ const topicDetails = [
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [isTalking, setIsTalking] = useState(false);
-  const [speechText, setSpeechText] = useState("Hi! How may I help you? 👋");
+  const [speechText, setSpeechText] = useState("Beep Boop! 🤖 Ready for a magical coding adventure? ✨");
   
   // Progression state
   const [unlockedCount, setUnlockedCount] = useState(1);
   const [activeTopicIndex, setActiveTopicIndex] = useState(0);
+    const [selectedTopic, setSelectedTopic] = useState(null);
+    const [question, setQuestion] = useState('');
+    const [userAnswer, setUserAnswer] = useState('');
+    const [feedback, setFeedback] = useState(null);
 
   const hasGreetingSpoken = useRef(false);
   const speechTimeoutRef = useRef(null);
@@ -104,7 +108,7 @@ export default function Home() {
     const triggerGreeting = () => {
       if (hasGreetingSpoken.current || started) return;
       hasGreetingSpoken.current = true;
-      speakText("Hi! How may I help you?");
+      speakText("Beep boop! Ready for a magical coding adventure?");
     };
 
     triggerGreeting();
@@ -177,36 +181,113 @@ export default function Home() {
     }
   };
 
+  const handleBackToHome = () => {
+    // Reset lesson state and stop any speaking
+    setStarted(false);
+    setActiveTopicIndex(0);
+    setSelectedTopic(null);
+    setUserAnswer('');
+    setFeedback(null);
+    setSpeechText("Hi! How may I help you? 👋");
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  // Interactive topic quiz: show arrows and ask variable/value question
+  const handleTopicClickInteractive = (topic) => {
+    setSelectedTopic(topic);
+    setUserAnswer('');
+    setFeedback(null);
+
+    if (topic === 'Variables') {
+      setQuestion('Which token in the statement \nlet x = 5;\n is the variable name? Type the variable name.');
+      setSpeechText('Identify the variable in this code: let x equals five. Which token is the variable name?');
+      speakText('Identify the variable in this code: let x equals five. Which token is the variable name?');
+    } else {
+      setQuestion(`Explain what is the key idea behind ${topic}.`);
+      setSpeechText(`Tell me briefly: what is the key idea behind ${topic}?`);
+      speakText(`Tell me briefly: what is the key idea behind ${topic}?`);
+    }
+  };
+
+  const checkAnswer = () => {
+    if (!selectedTopic) return;
+    const answer = (userAnswer || '').trim().toLowerCase();
+    let correct = false;
+    let expected = '';
+
+    if (selectedTopic === 'Variables') {
+      expected = 'x';
+      correct = answer === expected;
+    } else {
+      // For non-variables topics accept any non-empty response as "answered"
+      correct = answer.length > 2;
+    }
+
+    if (correct) {
+      setFeedback({ ok: true, text: 'Correct — well done!' });
+      speakText('Correct! Great job.');
+      // progress to next topic after a short delay
+      setTimeout(() => {
+        completeTopic();
+        setSelectedTopic(null);
+      }, 1200);
+    } else {
+      setFeedback({ ok: false, text: `Not quite — try again.` });
+      speakText('Not quite, please try again.');
+    }
+  };
+
   return (
-    <div className="root-container" style={{ minHeight: '100vh', padding: '32px 24px', background: 'linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%)', fontFamily: 'Segoe UI, system-ui, sans-serif' }}>
+    <div className="root-container premium-bg" style={{ minHeight: '100vh', padding: '32px 24px' }}>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+        
         *, *::before, *::after { box-sizing: border-box; }
-        body { margin: 0; padding: 0; }
+        body { margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
+        
+        /* Premium Background Animation */
+        @keyframes gradientMove {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        
+        .premium-bg {
+          background: linear-gradient(-45deg, #f0f7ff, #e0f2fe, #dbeafe, #eff6ff);
+          background-size: 400% 400%;
+          animation: gradientMove 15s ease infinite;
+        }
+
         @keyframes popIn { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes slideInLeft { from { transform: translateX(-30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes floatAnim { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
         
         .interactive-card {
           display: flex;
           gap: 32px;
           align-items: stretch;
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.6);
-          box-shadow: 0 25px 60px rgba(15, 23, 42, 0.06);
-          border-radius: 32px;
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 0 30px 60px rgba(37, 99, 235, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+          border-radius: 36px;
           padding: 40px;
           width: 100%;
-          animation: popIn 0.6s cubic-bezier(0.1, 0.8, 0.2, 1);
+          animation: popIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .sidebar {
           flex: 0 0 280px;
-          background: #ffffff;
-          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.6);
+          backdrop-filter: blur(12px);
+          border-radius: 28px;
           padding: 24px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-          animation: slideInLeft 0.5s ease-out;
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 0 15px 35px rgba(15, 23, 42, 0.05);
+          animation: slideInLeft 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .main-content {
@@ -251,27 +332,145 @@ export default function Home() {
         }
 
         .topic-item.active {
-          background: #2563eb;
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
           color: #ffffff;
-          border-color: #2563eb;
-          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
+          border-color: #3b82f6;
+          box-shadow: 0 12px 24px rgba(37, 99, 235, 0.3);
+          transform: scale(1.02);
         }
 
         .btn {
-          padding: 14px 32px;
+          padding: 16px 36px;
           border-radius: 999px;
           border: none;
-          font-size: 1rem;
-          font-weight: 700;
+          font-size: 1.15rem;
+          font-weight: 800;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
           color: #fff;
+          text-transform: uppercase;
+          letter-spacing: 1px;
         }
-        .start-btn { background: #2563eb; box-shadow: 0 10px 24px rgba(37, 99, 235, 0.2); }
-        .start-btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+        .start-btn { 
+          background: linear-gradient(135deg, #f59e0b, #ef4444); 
+          box-shadow: 0 10px 24px rgba(239, 68, 68, 0.3), inset 0 -4px 0 rgba(0,0,0,0.15); 
+          animation: floatAnim 3s infinite;
+        }
+        .start-btn:hover { 
+          transform: translateY(-4px) scale(1.05); 
+          box-shadow: 0 15px 30px rgba(239, 68, 68, 0.4), inset 0 -4px 0 rgba(0,0,0,0.15); 
+        }
+        .start-btn:active {
+          transform: translateY(2px);
+          box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3), inset 0 -1px 0 rgba(0,0,0,0.15);
+        }
+
+        /* Quiz panel styles */
+        .quiz-panel {
+          width: 100%;
+          background: #fff;
+          border: 1px solid #e6eefc;
+          border-radius: 14px;
+          padding: 18px;
+          box-shadow: 0 12px 28px rgba(14, 165, 233, 0.06);
+          display: flex;
+          gap: 14px;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .code-box {
+          flex: 1 1 320px;
+          background: #0f172a;
+          color: #e6f8ff;
+          padding: 18px;
+          border-radius: 12px;
+          position: relative;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
+          font-weight: 700;
+        }
+
+        .arrow-left, .arrow-right {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255,255,255,0.06);
+          padding: 6px 10px;
+          border-radius: 999px;
+          color: #c7f0ff;
+          font-weight: 800;
+        }
+        .arrow-left { left: -20px; }
+        .arrow-right { right: -20px; }
+
+        .answer-input {
+          flex: 0 0 280px;
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: flex-end;
+        }
+
+        .feedback-ok { color: #059669; font-weight: 800; }
+        .feedback-bad { color: #dc2626; font-weight: 800; }
         .complete-btn { background: #16a34a; box-shadow: 0 10px 24px rgba(22, 163, 74, 0.2); width: 100%; }
         .complete-btn:hover { background: #15803d; transform: translateY(-2px); }
         
+        .back-btn { 
+          background: #ffffff; 
+          color: #475569; 
+          border: 2px solid #e2e8f0; 
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+        }
+        .back-btn:hover { 
+          background: #f8fafc; 
+          border-color: #cbd5e1;
+          color: #1e293b;
+          transform: translateY(-2px); 
+          box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        }
+        
+        .speech-bubble-premium {
+          position: relative;
+          background: rgba(255, 255, 255, 0.9);
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(191, 219, 254, 0.6);
+          border-radius: 28px;
+          padding: 20px 32px;
+          width: fit-content;
+          maxWidth: 90%;
+          box-shadow: 0 20px 40px rgba(59, 130, 246, 0.12);
+          font-size: 1.15rem;
+          color: #1e293b;
+          font-weight: 600;
+          text-align: center;
+          min-height: 85px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: floatAnim 6s ease-in-out infinite;
+        }
+        .speech-bubble-pointer {
+          position: absolute;
+          bottom: -12px;
+          left: 50%;
+          transform: translateX(-50%) rotate(45deg);
+          width: 24px;
+          height: 24px;
+          background: rgba(255, 255, 255, 0.9);
+          border-right: 2px solid rgba(191, 219, 254, 0.6);
+          border-bottom: 2px solid rgba(191, 219, 254, 0.6);
+        }
+
+        .bot-container {
+          animation: floatAnim 5s ease-in-out infinite reverse;
+        }
+
         @media (max-width: 850px) {
           .interactive-card { flex-direction: column; padding: 24px; }
           .sidebar { flex: auto; width: 100%; }
@@ -299,7 +498,7 @@ export default function Home() {
                     <div 
                       key={topic.name} 
                       className={`topic-item ${itemClass}`}
-                      onClick={() => handleSelectTopic(index)}
+                      onClick={() => { handleSelectTopic(index); handleTopicClickInteractive(topic.name); }}
                     >
                       <span>{isLocked ? '🔒' : (isActive ? '⚡' : '🔓')}</span>
                       {topic.name}
@@ -312,32 +511,12 @@ export default function Home() {
 
           {/* Main Content Area */}
           <div className="main-content">
-            <div
-              className="speech-bubble"
-              style={{
-                position: 'relative',
-                background: '#ffffff',
-                border: '2px solid #bfdbfe',
-                borderRadius: '24px',
-                padding: '16px 24px',
-                width: '100%',
-                maxWidth: '600px',
-                boxShadow: '0 12px 30px rgba(59, 130, 246, 0.08)',
-                fontSize: '1.1rem',
-                color: '#1e293b',
-                fontWeight: '600',
-                textAlign: 'center',
-                minHeight: '75px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            <div className="speech-bubble-premium">
               {speechText}
-              <div style={{ position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%) rotate(45deg)', width: '18px', height: '18px', background: '#ffffff', borderRight: '2px solid #bfdbfe', borderBottom: '2px solid #bfdbfe' }} />
+              <div className="speech-bubble-pointer" />
             </div>
 
-            <div style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '20px 0' }}>
+            <div className="bot-container" style={{ width: '100%', height: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '20px 0' }}>
               {!started ? (
                 <img src={AI} alt="Waving AI Assistant" style={{ height: '100%', maxHeight: '250px', borderRadius: '28px', boxShadow: '0 16px 36px rgba(59, 130, 246, 0.12)' }} />
               ) : (
@@ -350,7 +529,7 @@ export default function Home() {
                 Start Learning 🚀
               </button>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', maxWidth: '600px', background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', animation: 'popIn 0.5s ease-out' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', maxWidth: '', background: '#f8fafc', padding: '24px', borderRadius: '24px', border: '1px solid #e2e8f0', animation: 'popIn 0.5s ease-out' }}>
                 <h3 style={{ color: '#1e3a8a', fontSize: '1.6rem', margin: 0, borderBottom: '2px dashed #bfdbfe', paddingBottom: '10px', width: '100%', textAlign: 'center' }}>
                   {topicDetails[activeTopicIndex].title}
                 </h3>
@@ -376,6 +555,39 @@ export default function Home() {
                   <button className="btn complete-btn" onClick={completeTopic} style={{ marginTop: '10px' }}>
                     Clear Topic & Unlock Next ✅
                   </button>
+                )}
+                <button className="btn back-btn" onClick={handleBackToHome} style={{ marginTop: 8 }}>
+                  <span>🔙</span> Back to Home
+                </button>
+                {/* Interactive quiz panel for variable/value identification */}
+                {selectedTopic && (
+                  <div className="quiz-panel" style={{ marginTop: 18 }}>
+                    <div className="code-box">
+                      <div className="arrow-left">variable →</div>
+                      <div className="arrow-right">← value</div>
+                      <pre style={{ margin: 0, fontSize: '1.05rem' }}>{`let x = 5;`}</pre>
+                    </div>
+
+                    <div className="answer-input">
+                      <div style={{ textAlign: 'right', marginRight: 8, maxWidth: 220 }}>
+                        <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>Question</div>
+                        <div style={{ fontSize: '0.95rem', color: '#334155', whiteSpace: 'pre-wrap' }}>{question}</div>
+                      </div>
+
+                      <input
+                        value={userAnswer}
+                        onChange={(e) => setUserAnswer(e.target.value)}
+                        placeholder="Type your answer"
+                        style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', minWidth: 160 }}
+                      />
+
+                      <button onClick={checkAnswer} className="btn" style={{ background: '#2563eb' }}>Check</button>
+
+                      {feedback && (
+                        <div style={{ marginLeft: 12 }} className={feedback.ok ? 'feedback-ok' : 'feedback-bad'}>{feedback.text}</div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
